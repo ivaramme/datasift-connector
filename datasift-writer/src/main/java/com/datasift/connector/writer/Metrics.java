@@ -57,6 +57,11 @@ public class Metrics {
         this.interruptedShutdown = registry.meter("interrupt-shutdown");
         this.shutdown = registry.meter("shutdown");
         this.bulkPostTime = registry.timer("bulk-post-time");
+        this.readItemFromKinesis = registry.meter("read-item-from-kinesis");
+        this.readItemFromQueue = registry.meter("read-item-from-queue");
+        this.readItemsFromKinesis = registry.meter("read-items-from-kinesis");
+        this.readKinesisFromStart = registry.meter("read-kinesis-from-start");
+        this.parsingError = registry.meter("parsing-error");
     }
 
     /**
@@ -194,6 +199,12 @@ public class Metrics {
      * The timer for measuring how long the bulk post takes.
      */
     public Timer bulkPostTime;
+
+    public Meter readItemFromKinesis;
+    public Meter readItemFromQueue;
+    public Meter readItemsFromKinesis;
+    public Meter parsingError;
+    public Meter readKinesisFromStart;
 
     /**
      * Create a reporter to send metrics to Graphite.

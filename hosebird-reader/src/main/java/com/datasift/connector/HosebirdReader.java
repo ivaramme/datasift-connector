@@ -1,5 +1,8 @@
 package com.datasift.connector;
 
+import com.amazonaws.services.kinesis.producer.KinesisProducer;
+import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
+import com.amazonaws.services.kinesis.producer.UserRecordResult;
 import com.datasift.connector.reader.Messages;
 import com.datasift.connector.reader.Metrics;
 import com.datasift.connector.reader.ReadAndSendPredicate;
@@ -14,20 +17,21 @@ import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.StatsReporter;
 import com.twitter.hbc.core.event.Event;
 import com.twitter.hbc.httpclient.BasicClient;
-import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -144,14 +148,16 @@ public abstract class HosebirdReader {
                 config.metrics.reportingTime);
 
         // Client to send messages to the onward queue
-        Producer<String, String> producer = getKafkaProducer(config.kafka);
+        //Producer<String, String> producer = getKafkaProducer(config.kafka);
+        // TODO: replace with Kinesis producer
+        KinesisProducer producer1 = getKinesisProducer();
 
         // Ensure that on shutdown we tidy up gracefully
         addShutdownHook(
                 client,
                 buffer,
                 config.kafka.topic,
-                producer);
+                producer1);
 
         log.info("Starting external retry loop");
         while (this.getRetry()) {
@@ -161,7 +167,7 @@ public abstract class HosebirdReader {
             readAndSend(
                     buffer,
                     config.kafka.topic,
-                    producer,
+                    producer1,
                     new ReadAndSendPredicate() {
                 @Override
                 public boolean process() {
@@ -179,6 +185,13 @@ public abstract class HosebirdReader {
         }
     }
 
+    protected KinesisProducer getKinesisProducer() {
+        KinesisProducerConfiguration config = new KinesisProducerConfiguration()
+                                                                    .setRegion("us-east-1");
+        //config.setCredentialsProvider();
+        return new KinesisProducer(config);
+    }
+
     /**
      * Add a hook that gracefully deals with shutdown.
      * Drain the buffer queue and send to Kafka before exit.
@@ -193,7 +206,8 @@ public abstract class HosebirdReader {
         final Client client,
         final LinkedBlockingQueue<String> buffer,
         final String onwardQueueTopic,
-        final Producer<String, String> producer) {
+        final KinesisProducer producer) {
+        // final Producer<String, String> producer) {
 
         this.runtimeAddShutdownHook(new Thread() {
             public void run() {
@@ -223,7 +237,9 @@ public abstract class HosebirdReader {
                 log.info("Finished draining buffer");
 
                 // Gracefully stop the Kafka producer
-                producer.close();
+                producer.flush();
+                producer.destroy();
+                //producer.close();
 
                 log.info("Shutdown hook finished");
             }
@@ -305,7 +321,8 @@ public abstract class HosebirdReader {
     protected void readAndSend(
             final LinkedBlockingQueue<String> buffer,
             final String onwardQueueTopic,
-            final Producer<String, String> producer,
+            final KinesisProducer producer,
+            // final Producer<String, String> producer,
             final ReadAndSendPredicate readAndSendPredicate) {
 
         log.info("Start reading of messages from buffer queue and onward send");
@@ -328,8 +345,34 @@ public abstract class HosebirdReader {
             // it as final. If we decide not to log the message this
             // is unnecessary overhead.
             final String message2 = message;
-            log.trace("Send message to Kafka: {}", message);
+            log.trace("Send message to Kinesis: {}", message);
             log.trace("{} messages in buffer queue", buffer.size());
+
+            // TODO: update to publish to kinesis
+            ByteBuffer data = null;
+            try {
+                data = ByteBuffer.wrap(message.getBytes("UTF-8"));
+                Future<UserRecordResult> newRecord = producer.addUserRecord(onwardQueueTopic, "0", data);
+                UserRecordResult result = newRecord.get();
+
+                log.debug("Message sent to Kafka");
+                metrics.sent.mark();
+
+                if(!result.isSuccessful()) {
+                    // TODO: check this one
+                    String error = result.getAttempts().stream().findFirst().get().getErrorMessage();
+                    log.error("Exception sending message to Kinesis: {}",
+                                            error,
+                                            message2);
+                    metrics.sendError.mark();
+                }
+            } catch (UnsupportedEncodingException e) {
+                log.error("Invalid encoding for message: {}", message2);
+            } catch (ExecutionException | InterruptedException e) {
+                log.error("Error while sending publish request to Kinesis: {}", e);
+            }
+
+            /*
             producer.send(
                 new ProducerRecord<>(onwardQueueTopic, "0", message),
                 new Callback() {
@@ -349,6 +392,7 @@ public abstract class HosebirdReader {
                     }
                 }
             );
+            */
         }
     }
 

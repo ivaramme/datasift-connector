@@ -5,7 +5,7 @@ package com.datasift.connector.writer;
  * Allows reading of Kafka items, manual committing of offsets,
  * and resetting of queue read position.
  */
-interface ConsumerManager {
+public interface ConsumerManager {
 
     /**
      * Get the next item from the Kafka queue containing the offset and current message.
@@ -28,4 +28,6 @@ interface ConsumerManager {
      * @return boolean indicating whether reset was successful
      */
     boolean reset();
+
+    void shutdown();
 }

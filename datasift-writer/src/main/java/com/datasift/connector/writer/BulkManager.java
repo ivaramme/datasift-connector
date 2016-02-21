@@ -56,7 +56,8 @@ public class BulkManager implements Runnable {
     /**
      * The simple consumer manager for Kafka.
      */
-    private SimpleConsumerManager simpleConsumerManager;
+    // private SimpleConsumerManager simpleConsumerManager;
+    private ConsumerManager simpleConsumerManager;
 
     /**
      * The logger to send messages to.
@@ -96,7 +97,7 @@ public class BulkManager implements Runnable {
      * @param metrics the metrics object
      */
     public BulkManager(final DataSiftConfig config,
-                       final SimpleConsumerManager simpleConsumerManager,
+                       final ConsumerManager simpleConsumerManager,
                        final Backoff backoff,
                        final Metrics metrics) {
         this.config = config;
@@ -205,7 +206,7 @@ public class BulkManager implements Runnable {
                 && buffer.length() < config.bulkSize);
 
         log.debug("Read {} items from Kafka", read);
-        metrics.readKafkaItemsFromConsumer.mark();
+        metrics.readItemsFromKinesis.mark();
 
         return new BulkReadValues(read, buffer.toString());
     }
@@ -218,7 +219,7 @@ public class BulkManager implements Runnable {
     @VisibleForTesting
     @SuppressWarnings({"checkstyle:designforextension"})
     protected boolean getDataFromKafka(final StringBuilder buffer) {
-
+        // TODO: read from Kinesis
         ConsumerData cd = simpleConsumerManager.readItem();
         if (cd == null) {
             return false;
@@ -235,7 +236,7 @@ public class BulkManager implements Runnable {
             buffer.append("\r\n");
         }
 
-        metrics.readKafkaItemFromConsumer.mark();
+        metrics.readItemFromKinesis.mark();
         buffer.append(message);
         return true;
     }

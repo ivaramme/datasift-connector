@@ -1,52 +1,27 @@
 package com.datasift.connector;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.datasift.connector.reader.Messages;
-import com.datasift.connector.reader.Metrics;
+import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.datasift.connector.reader.ReadAndSendPredicate;
-import com.datasift.connector.reader.config.Config;
-import com.datasift.connector.reader.config.GnipReaderConfig;
-import com.datasift.connector.reader.config.HosebirdConfig;
-import com.datasift.connector.reader.config.KafkaConfig;
-import com.datasift.connector.reader.config.MetricsConfig;
-import com.datasift.connector.reader.config.GnipConfig;
+import com.datasift.connector.reader.config.*;
 import com.twitter.hbc.ClientBuilder;
-import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
 import com.twitter.hbc.core.StatsReporter;
 import com.twitter.hbc.core.endpoint.StreamingEndpoint;
-import com.twitter.hbc.core.event.Event;
-import com.twitter.hbc.core.event.EventType;
 import com.twitter.hbc.core.processor.HosebirdMessageProcessor;
 import com.twitter.hbc.core.processor.LineStringProcessor;
 import com.twitter.hbc.httpclient.BasicClient;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.BasicAuth;
-import kafka.api.FetchRequest;
-import kafka.api.FetchRequestBuilder;
-import kafka.javaapi.FetchResponse;
-import kafka.javaapi.consumer.SimpleConsumer;
-import kafka.message.Message;
-import kafka.message.MessageAndOffset;
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 
@@ -104,7 +79,7 @@ public class TestGnipReader {
         when(tr.getHosebirdClient(any(LinkedBlockingQueue.class), any(GnipReaderConfig.class))).thenCallRealMethod();
         when(tr.getKafkaProducer(any(KafkaConfig.class))).thenReturn(producer);
         when(tr.getClientBuilder()).thenReturn(this.cb);
-        doNothing().when(tr).readAndSend(any(LinkedBlockingQueue.class), anyString(), any(Producer.class), any(ReadAndSendPredicate.class));
+        doNothing().when(tr).readAndSend(any(LinkedBlockingQueue.class), anyString(), any(KinesisProducer.class), any(ReadAndSendPredicate.class));
         when(tr.parseConfigFile(anyString())).thenCallRealMethod();
         when(tr.getConfigClass()).thenCallRealMethod();
 

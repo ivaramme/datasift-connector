@@ -5,6 +5,7 @@ package com.datasift.connector.writer;
  */
 public class ConsumerData {
 
+    private String shardSequenceNumber;
     /**
      * Kafka offset for this consumed item.
      */
@@ -26,11 +27,25 @@ public class ConsumerData {
     }
 
     /**
+     * Constructor. Sets offset and message members.
+     * @param shardSequenceNumber offset of item in Kinesis queue
+     * @param message queue data message represented as a String type
+     */
+    public ConsumerData(final String shardSequenceNumber, final String message) {
+        this.shardSequenceNumber = shardSequenceNumber;
+        this.message = message;
+    }
+
+    /**
      * Gets this item's Kafka queue offset.
      * @return the queue offset as a long
      */
     public final long getOffset() {
         return offset;
+    }
+
+    public final String getShardSequenceNumber() {
+        return shardSequenceNumber;
     }
 
     /**

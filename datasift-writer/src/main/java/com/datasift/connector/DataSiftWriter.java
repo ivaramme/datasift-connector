@@ -1,11 +1,6 @@
 package com.datasift.connector;
 
-import com.datasift.connector.writer.Backoff;
-import com.datasift.connector.writer.BulkManager;
-import com.datasift.connector.writer.Messages;
-import com.datasift.connector.writer.Metrics;
-import com.datasift.connector.writer.SimpleConsumerManager;
-import com.datasift.connector.writer.Sleeper;
+import com.datasift.connector.writer.*;
 import com.datasift.connector.writer.config.Config;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -67,7 +62,7 @@ public class DataSiftWriter {
      * Kafka consumer group manager object.
      */
     @VisibleForTesting
-    protected SimpleConsumerManager consumerManager;
+    protected ConsumerManager consumerManager;
 
     /**
      * Number of consumer threads.
@@ -175,7 +170,7 @@ public class DataSiftWriter {
                 config.metrics.reportingTime);
 
         log.info("Initialising Kafka consumer manager");
-        setupConsumer();
+        setupKinesisConsumer();
 
         log.info("Initialising bulk uploads");
         setupBulk(config, consumerManager, metrics, log);
@@ -200,11 +195,15 @@ public class DataSiftWriter {
     private void setupConsumer() {
         consumerManager = new SimpleConsumerManager(config, metrics);
         try {
-            consumerManager.run(waitOnKafka);
+            ((SimpleConsumerManager)consumerManager).run(waitOnKafka);
         } catch (Exception e) {
             log.error("Error during start-up of Kafka consumer manager. Details: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void setupKinesisConsumer() {
+        consumerManager = new KinesisConsumerManager(config, metrics);
     }
 
     /**
@@ -216,7 +215,7 @@ public class DataSiftWriter {
      */
     @VisibleForTesting
     @SuppressWarnings("checkstyle:designforextension")
-    protected void setupBulk(final Config config, final SimpleConsumerManager consumer,
+    protected void setupBulk(final Config config, final ConsumerManager consumer,
                              final Metrics metrics, final Logger log) {
         bulkManager = new BulkManager(
                 config.datasift,

@@ -20,7 +20,7 @@ public class KafkaConfig {
     @NotNull
     @Size(max = 255)
     @Pattern(regexp = "[a-zA-Z0-9\\\\._\\\\-]+")
-    public String topic = "twitter";
+    public String topic = "gnip-reader";
 
     /**
      * The Kafka server addresses.
