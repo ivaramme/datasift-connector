@@ -85,7 +85,6 @@ public class KinesisConsumerManager implements ConsumerManager {
             return item;
         }
 
-        // TODO: fetch objects from kinesis
         metrics.readItemsFromKinesis.mark();
         metrics.readKafkaItemsFromConsumer.mark();
 
@@ -137,6 +136,13 @@ public class KinesisConsumerManager implements ConsumerManager {
             lastShardSequenceNumberProcessed = item.getShardSequenceNumber();
             metrics.readItemFromQueue.mark();
             return item;
+        } else if(0 == processed) {
+            // Wait for a bit to avoid making infinite calls to Kinesis.
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }

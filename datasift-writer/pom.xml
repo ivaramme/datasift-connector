@@ -77,49 +77,22 @@
     </dependencies>
     <build>
         <plugins>
-	        <plugin>
-                <version>2.1-alpha-4</version>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>rpm-maven-plugin</artifactId>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>attached-rpm</goal>
+                            <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <needarch>noarch</needarch>
-                    <targetOS>linux</targetOS>
-                    <group>Services/datasift-writer</group>
-                    <!--copyright required to avoid error message "error: License field must be present in package: (main package)"-->
-                    <copyright>DataSift - All rights reserved</copyright>
-                    <defaultGroupname>writer</defaultGroupname>
-                    <defaultUsername>writer</defaultUsername>
-                    <mappings>
-                        <mapping>
-                            <filemode>755</filemode>
-                            <directory>/usr/lib/datasift/${project.artifactId}</directory>
-                            <artifact/>
-                            <dependency/>
-                        </mapping>
-                        <mapping>
-                            <configuration>true</configuration>
-                            <directory>/etc/datasift/${project.artifactId}</directory>
-                            <filemode>755</filemode>
-                            <configuration>noreplace</configuration>
-                            <sources>
-                                <source>
-                                    <location>src/main/resources</location>
-                                    <includes>
-                                        <include>*.json</include>
-                                        <include>*.properties</include>
-                                    </includes>
-                                </source>
-                            </sources>
-                        </mapping>
-                    </mappings>
-                </configuration>
             </plugin>
         </plugins>
     </build>

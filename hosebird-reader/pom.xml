@@ -20,5 +20,26 @@
             <artifactId>amazon-kinesis-producer</artifactId>
             <version>0.10.2</version>
         </dependency>
-    </dependencies>
+     </dependencies>
+     <build>
+	<plugins> 
+          <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+	</plugins>
+     </build>
 </project>
