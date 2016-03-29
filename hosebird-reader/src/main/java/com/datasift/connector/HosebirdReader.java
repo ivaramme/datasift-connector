@@ -348,7 +348,6 @@ public abstract class HosebirdReader {
             log.trace("Send message to Kinesis: {}", message);
             log.trace("{} messages in buffer queue", buffer.size());
 
-            // TODO: update to publish to kinesis
             ByteBuffer data = null;
             try {
                 data = ByteBuffer.wrap(message.getBytes("UTF-8"));
@@ -359,7 +358,6 @@ public abstract class HosebirdReader {
                 metrics.sent.mark();
 
                 if(!result.isSuccessful()) {
-                    // TODO: check this one
                     String error = result.getAttempts().stream().findFirst().get().getErrorMessage();
                     log.error("Exception sending message to Kinesis: {}",
                                             error,
