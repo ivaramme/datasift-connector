@@ -7,10 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 
+import static java.nio.file.Files.getLastModifiedTime;
 import static java.nio.file.Files.readAllBytes;
 import static java.nio.file.Paths.get;
 
@@ -80,7 +83,7 @@ public class KinesisConsumerManager implements ConsumerManager {
             log.debug("Returning object from local queue");
             ConsumerData item = dataItems.remove();
             lastShardSequenceNumberProcessed = item.getShardSequenceNumber();
-            log.info("Object: {}", item.getMessage());
+            log.debug("Object: {}", item.getMessage());
             metrics.readItemFromQueue.mark();
             return item;
         }
@@ -207,7 +210,7 @@ public class KinesisConsumerManager implements ConsumerManager {
                                                     .withStreamName(streamName);
         DescribeStreamResult streamInfoResult = client.describeStream(streamInfoRequest);
         List<Shard> shards = streamInfoResult.getStreamDescription().getShards();
-        log.debug("Retrieving shard data for stream {}", streamName);
+        log.info("Retrieving shard data for stream {}", streamName);
 
         if(shards.size() > 0) {
             partition = shards.get(0).getShardId();
@@ -219,8 +222,15 @@ public class KinesisConsumerManager implements ConsumerManager {
     private String fetchLastCheckpoint(String topic) {
         String value = "";
         try {
-            value = new String(readAllBytes(get("checkpoint-"+topic+".txt")));
-            log.info("Reading checkpoint from file: {}", value);
+            FileTime lastModifiedDate = getLastModifiedTime(get("checkpoint-"+topic+".txt"), LinkOption.NOFOLLOW_LINKS);
+
+            // Check the file is current
+            if((System.currentTimeMillis() - lastModifiedDate.toMillis()) < 86400000) {
+                value = new String(readAllBytes(get("checkpoint-" + topic + ".txt")));
+                log.info("Reading checkpoint from file: {}", value);
+            } else {
+                log.info("Checkpoint file is older than one day and probably not longer relevant.");
+            }
         } catch (IOException e) {
             log.error("Unable to read from checkpoint for topic {}, exception: {}.", topic, e);
         }
