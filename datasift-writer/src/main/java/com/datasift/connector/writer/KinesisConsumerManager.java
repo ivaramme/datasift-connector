@@ -192,8 +192,14 @@ public class KinesisConsumerManager implements ConsumerManager {
             metrics.readKinesisFromStart.mark();
         }
 
-        GetShardIteratorResult getShardIteratorResult = client.getShardIterator(getShardIteratorRequest);
-        return getShardIteratorResult.getShardIterator();
+        try {
+            GetShardIteratorResult getShardIteratorResult = client.getShardIterator(getShardIteratorRequest);
+            return getShardIteratorResult.getShardIterator();
+        } catch (Exception ace) {
+            log.error("Error interacting with AWS to fetch the iterator: {}", ace.getMessage());
+        }
+
+        return null;
     }
 
     private GetRecordsResult getRecords(final String fromShardIterator) {
